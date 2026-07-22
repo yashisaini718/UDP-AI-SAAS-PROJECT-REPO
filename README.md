@@ -1,4 +1,4 @@
-# [Yashi Saini] | [AI SAAS] | [Your Student ID] | UDP_AI_SAAS
+# Yashi Saini | AI-SAAS | Yashi-AISaaS-0703 | UDP_AI_SAAS
 
 ## Project Overview
 This is the official UDP repository for forking and creating your minor project for evaluation.

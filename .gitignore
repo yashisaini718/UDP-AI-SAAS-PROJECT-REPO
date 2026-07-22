@@ -1,3 +1,9 @@
 .venv/
 .env
 __pycache__/
+# Vector database
+chroma-db/
+
+# User documents
+data/
+

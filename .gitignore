@@ -7,3 +7,5 @@ chroma-db/
 # User documents
 data/
 
+# uploaded documents
+uploads/

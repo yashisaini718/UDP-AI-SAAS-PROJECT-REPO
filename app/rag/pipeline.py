@@ -1,5 +1,4 @@
-# this would be similar to app.py in the reference
-from prompts import PromptManager
+from app.rag.prompts import PromptManager
 
 class RagPipeline():
     def __init__(self, retriever, llm):
@@ -17,5 +16,3 @@ class RagPipeline():
         prompt=PromptManager.build_rag_prompt(query,context)
         response= self.llm.invoke(prompt)
         return response.content
-
-        

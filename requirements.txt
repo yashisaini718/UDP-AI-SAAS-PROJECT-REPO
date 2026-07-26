@@ -9,3 +9,13 @@ langchain-groq
 numpy
 langchain-google-genai
 langchain-groq
+fastapi
+uvicorn
+sqlalchemy
+asyncpg
+alembic
+pydantic-settings
+pwdlib
+python-multipart
+pyjwt
+pwdlib[argon2]

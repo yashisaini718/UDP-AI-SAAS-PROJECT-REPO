@@ -38,9 +38,9 @@ Tick-It AI is designed to solve a simple problem: important opportunities (inter
 -  **JWT Authentication** — user registration and login with hashed passwords (Argon2 via `pwdlib`) and bearer-token protected routes.
 -  **Document Ingestion** — PDF upload with SHA-256 deduplication (re-uploading the same file returns the existing record instead of storing a duplicate).
 -  **Chunking Pipeline** — documents are parsed with PyMuPDF and split into overlapping chunks using LangChain's recursive text splitter.
--  **Embeddings & Vector Search** — chunks are embedded with `sentence-transformers` (`all-MiniLM-L6-v2`) and stored in a persistent **ChromaDB** collection for similarity search.
--  **RAG-based Q&A** — ask natural-language questions about an uploaded document; the system retrieves the most relevant chunks and asks an LLM to answer strictly from that context (with graceful "not found" fallback to avoid hallucination).
--  **Automatic Opportunity Extraction** — a sliding-window LLM pass scans the full document and pulls out every distinct opportunity (internship, job, scholarship, funding, hackathon, competition, research program, event, workshop) as structured JSON, then deduplicates/merges overlapping detections.
+-  **Embeddings & Vector Search** — chunks are embedded with `sentence-transformers` and stored in a persistent **ChromaDB** collection for similarity search.
+-  **RAG-based Q&A** — ask natural-language questions about an uploaded document; the system retrieves the most relevant chunks and asks an LLM to answer strictly from that context (with "not found" fallback to avoid hallucination).
+-  **Automatic Opportunity Extraction** — a sliding-window LLM pass scans the full document and pulls out every distinct opportunity as structured JSON, then merges overlapping detections.
 -  **Auto-generated Task Lists** — each extracted opportunity comes with system-inferred action items (with title, description, priority, and due date) so users get a ready-made checklist.
 -  **Priority Inference** — deadlines and urgency are used to automatically tag opportunities/tasks as High, Medium, or Low priority.
 -  **Relational Data Model** — Users, Documents, Opportunities, and Tasks are related via SQLAlchemy ORM models with cascading deletes.
@@ -54,12 +54,12 @@ Tick-It AI is designed to solve a simple problem: important opportunities (inter
 | API Framework | FastAPI (async), Uvicorn |
 | Database | PostgreSQL, SQLAlchemy (async ORM), Alembic migrations |
 | Auth | JWT (`pyjwt`), Argon2 password hashing (`pwdlib`) |
-| Document Parsing | PyMuPDF (`fitz`) via LangChain loaders |
+| Document Parsing | PyMuPDF via LangChain loaders |
 | Chunking | LangChain `RecursiveCharacterTextSplitter` |
 | Embeddings | `sentence-transformers` (`all-MiniLM-L6-v2`) |
 | Vector Store | ChromaDB (persistent local collection) |
 | LLM | Groq API (`llama-3.1-8b-instant` via `langchain-groq`)|
-| Config | `pydantic-settings`, `python-dotenv` |
+| Config | `python-dotenv` |
 | Package Management | `uv` (with `pyproject.toml` / `uv.lock`), pip `requirements.txt` also provided |
 
 ## Architecture
@@ -77,7 +77,7 @@ Upload PDF ──▶ Ingestion (PyMuPDF + chunking)
         ▼                         ▼
   RAG Query Endpoint      Opportunity Extraction
   (retrieve + answer)   (sliding window + LLM JSON
-                          extraction + merge/dedupe)
+                          extraction + merge)
                                   │
                                   ▼
                      PostgreSQL: Opportunities + Tasks
@@ -98,7 +98,7 @@ app/
 │   ├── retriever.py     # Vector similarity retrieval + sliding windows
 │   └── vectorstore.py   # ChromaDB persistent client wrapper
 ├── core/
-│   ├── config.py        # App configuration (env-driven)
+│   ├── config.py        # App configuration
 │   └── security.py      # Password hashing, JWT creation/verification, auth dependency
 ├── db/
 │   ├── base.py           # SQLAlchemy declarative base
@@ -142,7 +142,7 @@ All primary keys are UUIDs; relationships cascade on delete.
 | `POST` | `/documents/upload-document` | Yes | Upload a PDF; deduplicated by file hash |
 | `POST` | `/ai/index-document` | Yes | Chunk, embed, and store a document's content in ChromaDB |
 | `POST` | `/ai/extract-opportunity` | Yes | Run LLM extraction over an indexed document and persist opportunities + tasks |
-| `POST` | `/ai/query-vectordb` | Yes | Ask a natural-language question; get an answer grounded in the document context |
+| `POST` | `/ai/query-vectordb` | Yes | Ask a natural-language question; get an answer based on document context |
 
 > Protected routes require a `Bearer <token>` obtained from `/auth/login`.
 
@@ -201,9 +201,9 @@ alembic revision --autogenerate -m "description of change"
 
 ## Roadmap
 
-Some scaffolding in the codebase hints at planned functionality:
-- **Reminders** — a `Reminder` model relationship is stubbed (commented out) on `Opportunity`, suggesting upcoming deadline notifications.
-- **Task management endpoints** — `Task` schemas exist, but dedicated CRUD routes for tasks are not yet implemented.
-- **Opportunity listing/detail endpoints** — currently opportunities are created via extraction but not yet exposed via read endpoints.
+Planned functionality:
+- **Reminders** — Reminder on the basis of opporunities.
+- **Task management endpoints** — CRUD operations on Tasks.
+- **Opportunity listing/detail endpoints** — exposing the opportunities via read endpoints.
 
 ---

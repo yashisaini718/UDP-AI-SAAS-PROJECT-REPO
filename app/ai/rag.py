@@ -52,6 +52,8 @@ class RagPipeline():
         # get the number of tokens used for this response
         print(response.response_metadata)
 
+        response = response.content.replace("\n", " ")
+
         return {
-            "answer": response.content,
+            "answer": response
         }

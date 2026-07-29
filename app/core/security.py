@@ -5,8 +5,8 @@ from app.core.config import config
 from datetime import datetime, timedelta, timezone
 from fastapi import HTTPException, status, Depends
 import jwt
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from app.auth.models import User
+from fastapi.security import OAuth2PasswordBearer
+from app.models.users import User
 from jwt.exceptions import InvalidTokenError
 from pwdlib import PasswordHash
 from sqlalchemy import select

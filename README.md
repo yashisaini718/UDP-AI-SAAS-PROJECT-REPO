@@ -124,6 +124,35 @@ app/
 alembic/                    # Database migration environment
 ```
 
+## Screenshots
+
+
+### user login
+
+<p align="center">
+  <img src="screenshots/user_login.png" width="700">
+</p>
+
+### upload document
+
+<p align="center">
+  <img src="screenshots/upload_document.png" width="700">
+</p>
+
+### index document
+
+<p align="center">
+  <img src="screenshots/index_document.png" width="700">
+</p>
+
+### extract opportunity
+
+<p align="center">
+  <img src="screenshots/extract_opportunity.png" width="700">
+</p>
+
+### query vectordb
+
 ## Data Model
 
 - **User** — `id, username, email, hashed_password, created_at, updated_at` → has many Documents and Opportunities.

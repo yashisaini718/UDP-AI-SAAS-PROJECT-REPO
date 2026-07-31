@@ -1,10 +1,10 @@
 from typing import Annotated
-from fastapi import APIRouter, Depends
-from fastapi.security import OAuth2PasswordRequestForm
+from fastapi import APIRouter, Depends, Request, Response
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.services.auth import registeruser, create_login
-from app.schemas.auth import Token, RegisteredUser
+from app.services.auth import registeruser, create_login, logout_user, refresh_access_token
+from app.schemas.auth import Token, RegisteredUser, LoginUser
 from app.db.session import get_db
+from app.core.security import get_current_user
 
 
 router = APIRouter(prefix= "/auth", tags= ["Auth"])
@@ -22,9 +22,22 @@ async def register_user(
     return await registeruser(username=username, email=email, password= password, db= db)
 
 
-@router.post("/login", response_model= Token)
+@router.post("/login")
 async def login(
-    formdata: Annotated[OAuth2PasswordRequestForm, Depends()],
+    data: LoginUser,
     db: AsyncSession = Depends(get_db),
 ):
-    return await create_login(form_data= formdata, db= db)
+    
+    return await create_login(form_data= data, db= db)
+
+
+@router.post("/refresh")
+async def refresh_token(request: Request, response: Response):
+
+    return await refresh_access_token(request, response)
+
+
+@router.post("/logout")
+async def logout(request: Request, response: Response):
+
+    return await logout_user(request)

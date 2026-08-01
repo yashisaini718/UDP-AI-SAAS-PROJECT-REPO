@@ -19,3 +19,6 @@ pwdlib
 python-multipart
 pyjwt
 pwdlib[argon2]
+pydatic[email]
+redis[hiredis]
+cookies

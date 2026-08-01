@@ -34,10 +34,13 @@ async def indexdocument(
 @router.post("/extract-opportunity")
 async def extract(
     document_id: str, 
+    request: Request,
     db: AsyncSession= Depends(get_db),
-    current_user=Depends(get_current_user)
+    current_user=Depends(get_current_user),
+    
 ):
-    created_count= await extract_opportunity(db=db, document_id=document_id)
+    rag_pipeline= request.app.state.rag
+    created_count= await extract_opportunity(db=db, document_id=document_id, rag_pipeline=rag_pipeline)
     
     return {
         "message": "Opportunities extracted successfully",

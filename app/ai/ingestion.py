@@ -5,6 +5,49 @@ from pathlib import Path
 # the ingestion pipeline will first load the document and return a list of langchain pages for each document 
 # and then split the documents into chunks
 
+import re
+
+_HEADING_PATTERNS = [
+    re.compile(r'^\s*(round|track|session|day|phase|stage|part)\s*[\-:#]?\s*\d+', re.IGNORECASE),
+    re.compile(r'^\s*\d+(\.\d+)*[\).]?\s+[A-Z]'),
+    re.compile(r'^\s*#{1,6}\s+\S'),
+    re.compile(r'^\s*[A-Z][A-Z0-9 &\-]{4,60}$'),
+]
+
+def _is_heading(line: str) -> bool:
+    line = line.strip()
+    if not line or len(line) > 80:
+        return False
+    return any(p.match(line) for p in _HEADING_PATTERNS)
+
+def detect_sections(pages):
+    document_id = pages[0].metadata.get("document_id")
+    source_file = pages[0].metadata.get("source_file")
+    file_type = pages[0].metadata.get("file_type")
+
+    sections = []
+    current_heading = "Document start"
+    current_lines = []
+
+    def flush():
+        text = "\n".join(current_lines).strip()
+        if text:
+            sections.append({
+                "heading": current_heading, "text": text,
+                "document_id": document_id, "source_file": source_file, "file_type": file_type,
+            })
+
+    for page in pages:
+        for line in page.page_content.split("\n"):
+            if _is_heading(line):
+                flush()
+                current_heading = line.strip()
+                current_lines = []
+            else:
+                current_lines.append(line)
+    flush()
+    return sections
+
 def load_document(file_path: str, document_id: str):
         ''' Returns a tuple of document_id and loaded pages[list]
         Args:
@@ -41,6 +84,8 @@ def load_document(file_path: str, document_id: str):
 def chunk_document(pages, chunk_size= 500, chunk_overlap= 100):
         """ Split document into smaller chunks using fixed size chunking """
 
+        sections = detect_sections(pages)
+        
         splitter= RecursiveCharacterTextSplitter(
             chunk_size= chunk_size,
             chunk_overlap= chunk_overlap,
@@ -48,8 +93,12 @@ def chunk_document(pages, chunk_size= 500, chunk_overlap= 100):
             separators= ["\n\n", "\n", " ", ""]
         )
 
-        split_docs= splitter.split_documents(pages)
-
-        print(f"split {len(pages)} into {len(split_docs)} chunks")
-
-        return split_docs  #returns a list of chunks
+        split_docs = []
+        
+        for i, section in enumerate(sections):
+            split_docs.extend(splitter.create_documents(
+                texts=[section["text"]],
+                metadatas=[{"document_id": section["document_id"], "source_file": section["source_file"],
+                            "file_type": section["file_type"], "section_heading": section["heading"], "section_index": i}]
+            ))
+        return split_docs

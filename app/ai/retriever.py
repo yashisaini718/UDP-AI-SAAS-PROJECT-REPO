@@ -66,8 +66,51 @@ class RetriverPipeline():
 
             return []
         
+    def build_section_outline(self, chunks, max_sections: int = 40, snippet_words: int = 25) -> str:
+        seen_headings, snippets = [], {}
+
+        for chunk_text, metadata in chunks:
+            heading = metadata.get("section_heading", "Unknown section")
+
+            if heading not in snippets:
+                if len(seen_headings) >= max_sections:
+                    continue
+
+                seen_headings.append(heading)
+
+                snippets[heading] = " ".join(chunk_text.split()[:snippet_words])
+
+        print(seen_headings)
+
+        return "\n\n".join(f"### {h}\n{snippets[h]}" for h in seen_headings)
+        
+    def group_chunks_by_anchor(self, chunks, anchors):
+        ''' Groups chunks by which anchor's related_headings they belong to.
+        This is what replaces "scan the whole doc in windows" with "extract once
+        per known opportunity" -- chunks whose section_heading isn't claimed by
+        any anchor become leftover, for a much smaller catch-all pass.
+        Returns (grouped, leftover):
+        - grouped: dict {anchor_index: [(chunk_text, metadata), ...]}
+        - leftover: [(chunk_text, metadata), ...] not claimed by any anchor
+        '''
+        heading_to_anchor_idx = {}
+        for idx, anchor in enumerate(anchors):
+            for heading in anchor.get("related_headings") or []:
+                heading_to_anchor_idx[heading] = idx
+
+        grouped = {idx: [] for idx in range(len(anchors))}
+        leftover = []
+
+        for chunk_text, metadata in chunks:
+            anchor_idx = heading_to_anchor_idx.get(metadata.get("section_heading"))
+            if anchor_idx is not None:
+                grouped[anchor_idx].append((chunk_text, metadata))
+            else:
+                leftover.append((chunk_text, metadata))
+
+        return grouped, leftover
     
-    def create_sliding_windows(self, chunks, window_size= 3):
+    def create_sliding_windows(self, chunks, window_size= 2):
         ''' Processes the chunks window by window 
         Args:
         chunks: a tuple of (chunk_text, metadata)'''
@@ -84,10 +127,17 @@ class RetriverPipeline():
             # batch is of the form [[chunk_text, metadata], [chun_text, metadata], [chunk_text, metadata]]
             # so, batch[0][1] means metadata of first chunk
 
+            headings = []
+            for _, meta in batch:
+                heading = meta.get("section_heading")
+                if heading and heading not in headings:
+                    headings.append(heading)
+
             metadata = {
                 "start_chunk": batch[0][1]["chunk_index"],
                 "end_chunk": batch[-1][1]["chunk_index"],
-                "document_id": batch[0][1]["document_id"]
+                "document_id": batch[0][1]["document_id"],
+                "section_headings": headings
             }
 
             # add to list

@@ -1,6 +1,17 @@
 import json
 
 class PromptManager:
+
+    @staticmethod
+    def build_outline_prompt(outline_text: str):
+        return f"""Identify the DISTINCT top-level opportunities in this document outline. Group rounds, tracks, phases, or sessions of one event under a single entry — do not list them separately.
+
+            Return ONLY a JSON array: [{{"title": string, "category": string, "summary": string, "related_headings": [string]}}]
+            If none, return [].
+
+            Outline:
+            {outline_text}
+            """
     
     @staticmethod
     def build_rag_prompt(query: str, context: str):
@@ -19,79 +30,51 @@ class PromptManager:
         return template.format(context=context, query=query)
     
     @staticmethod
-    def extract_opportunity_prompt(context: str):
-        template="""You are an expert information extraction system.
+    def extract_opportunity_prompt(context: str, known_anchors: list | None = None, section_headings: list | None = None):
+        anchors = "; ".join(f'"{a.get("title")}"' for a in known_anchors) if known_anchors else "none yet"
+        headings = ", ".join(section_headings) if section_headings else "unknown"
 
-        Extract every distinct opportunity mentioned in the document.
-        The same opportunity may appear in multiple sections of the document.
-        Use the official title exactly as it appears in the document.
-        Do not invent shorter or alternate titles.
+        template = """Determine how many opportunities are described. If multiple exist,extract each separately.
+            If only one exists,extract only one. Do not infer new opportunities from section headings.
+            Extract every DISTINCT opportunity (internship, job, scholarship, funding, hackathon, competition, research program, event, workshop) from the text below. Use each one's official title exactly as written — do not shorten or invent titles.
 
-        An opportunity can be:
-        - Internship
-        - Job
-        - Scholarship
-        - Funding
-        - Hackathon
-        - Competition
-        - Research Program
-        - Event
-        - Workshop
-        - Other
+            Rounds, tracks, phases, days, or sub-sections of ONE event are the SAME opportunity, not separate ones. Do not extract timelines, specs, judging criteria, eligibility rules, or penalties as their own entries — fold eligibility into "description" instead.
 
-        Do NOT extract:
-        - Sections of the same opportunity
-        - Rounds of a competition
-        - Timelines
-        - Robot specifications
-        - Judging criteria
-        - Track characteristics
-        - Instructions
-        - Penalties
+            Known opportunities already found elsewhere in this document: {anchors}
+            This text is from section(s): {headings}
+            If this text is a round/track/session of a known opportunity above, reuse its exact title instead of creating a new one.
 
-        If the document describes one competition with multiple rounds, return ONE opportunity for the competition.
+            Respond with a JSON array (empty array [] if none). Missing fields = null, empty lists = []. 
+            Dates as YYYY-MM-DD; for a date range use the last date; infer the year only if obvious from the text.
 
-        Rules:
+            Each object:
+            {{"title": str, "summary": str, "organization": str|null, "category": "Internship"|"Job"|"Scholarship"|"Funding"|"Hackathon"|"Competition"|"Research"|"Event"|"Other", 
+            "priority": "High"|"Medium"|"Low", "description": str|null, "deadline": "YYYY-MM-DD"|null, "required_documents": [str], 
+            "action_items": [{{"title": str, "description": str, "priority": "High"|"Medium"|"Low", "due_date": "YYYY-MM-DD"|null}}]}}
 
-        - Return ONLY a valid JSON array.
-        - Do not include markdown, explanations, or extra text.
-        - If no opportunity exists, return [].
-        - Do not invent information.
-        - Missing fields must be null.
-        - Empty lists must be [].
-        - Dates must use ISO format (YYYY-MM-DD).
-        - If a date range is given (e.g. 10–13 April), use the last date as the deadline.
-        - Infer the year only if it is obvious from the document.
+            Priority: High = deadline within 7 days, limited seats, or mandatory action. Medium = deadline within a month. Low = informational or no deadline.
 
-        For each opportunity extract:
-
-        {{
-            "title": string,
-            "summary": string,
-            "organization": string | null,
-            "category": "Internship" | "Job" | "Scholarship" | "Funding" | "Hackathon" | "Competition" | "Research" | "Event" | "Other",
-            "priority": "High" | "Medium" | "Low",
-            "description": string | null,
-            "deadline": "YYYY-MM-DD" | null,
-            "required_documents": [string],
-            "action_items": [
-                {{
-                    "title": string,
-                    "description": string,
-                    "priority": "High" | "Medium" | "Low",
-                    "due_date": "YYYY-MM-DD" | null
-                }}
-            ]
-        }}
-
-        Priority Rules:
-        - High: deadline within 7 days, limited seats, mandatory submission, or immediate action.
-        - Medium: deadline within one month or important opportunity.
-        - Low: informational or no immediate deadline.
-
-        Document:
-
-        {context}
-        """
-        return template.format(context=context)
+            Text:
+            {context}"""
+        return template.format(context=context, anchors=anchors, headings=headings)
     
+
+    @staticmethod
+    def extract_single_opportunity_prompt(anchor: dict, context: str):
+        title = anchor.get("title", "Unknown opportunity")
+        category = anchor.get("category", "Other")
+
+        return f"""Extract full structured details for ONE specific opportunity: "{title}" ({category}).
+
+    The text below may include multiple rounds, tracks, or sections of this SAME opportunity — combine them into a single, complete record. Do not create separate entries for rounds/tracks/sessions.
+
+    Respond with a single JSON object (not an array). Missing fields = null, empty lists = [].
+    Dates as YYYY-MM-DD; for a date range use the last date; infer the year only if obvious from the text.
+
+    Object shape:
+    {{"title": "{title}", "summary": str, "organization": str|null, "category": "{category}", "priority": "High"|"Medium"|"Low", "description": str|null, "deadline": "YYYY-MM-DD"|null, "required_documents": [str], "action_items": [{{"title": str, "description": str, "priority": "High"|"Medium"|"Low", "due_date": "YYYY-MM-DD"|null}}]}}
+
+    Priority: High = deadline within 7 days, limited seats, or mandatory action. Medium = deadline within a month. Low = informational or no deadline.
+
+    Text (all sections belonging to "{title}"):
+    {context}"""

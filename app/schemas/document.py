@@ -7,3 +7,7 @@ from app.schemas.tasks import TaskResponse
 class UploadResponse(BaseModel):
     document_id: UUID
     file_name: str
+
+class DocumentUploadResponse(BaseModel):
+    message: str
+    document: UploadResponse

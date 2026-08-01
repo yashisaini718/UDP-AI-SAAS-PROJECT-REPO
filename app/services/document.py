@@ -35,10 +35,12 @@ async def upload_document(db:AsyncSession , file, user):
     existing_document = result.scalar_one_or_none()
 
     if existing_document:
-        return UploadResponse(
-            document_id=existing_document.id,
-            file_name=existing_document.filename
-        )
+        return {
+        "message": "Document already available",
+        "document": UploadResponse(
+        document_id=existing_document.id, 
+        file_name=existing_document.filename
+    )}
     
     path= save_file(file)
 
@@ -58,9 +60,11 @@ async def upload_document(db:AsyncSession , file, user):
 
     await db.flush()
 
-    return UploadResponse(
+    return {
+        "message": "Document uploaded successfully",
+        "document": UploadResponse(
         document_id=document.id, 
         file_name=document.filename
-    )
+    )}
 
     

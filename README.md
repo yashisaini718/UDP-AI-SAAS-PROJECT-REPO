@@ -8,19 +8,39 @@ Built with **FastAPI**, **PostgreSQL**, **SQLAlchemy (async)**, **ChromaDB**, **
 
 ---
 
-## Table of Contents
+## Screenshots
 
-- [Overview](#overview)
-- [Features](#features)
-- [Tech Stack](#tech-stack)
-- [Architecture](#architecture)
-- [Project Structure](#project-structure)
-- [Data Model](#data-model)
-- [API Endpoints](#api-endpoints)
-- [Getting Started](#getting-started)
-- [Environment Variables](#environment-variables)
-- [Running Database Migrations](#running-database-migrations)
-- [Roadmap](#roadmap)
+
+### user login
+
+<p align="center">
+  <img src="screenshots/user_login.png" width="700">
+</p>
+
+### upload document
+
+<p align="center">
+  <img src="screenshots/upload_document.png" width="700">
+</p>
+
+### index document
+
+<p align="center">
+  <img src="screenshots/index_document.png" width="700">
+</p>
+
+### extract opportunity
+
+<p align="center">
+  <img src="screenshots/extract_opportunity.png" width="700">
+</p>
+
+### query vectordb
+
+<p align="center">
+  <img src="screenshots/query_vectordb.png" width="700">
+</p>
+
 
 ---
 
@@ -124,34 +144,6 @@ app/
 alembic/                    # Database migration environment
 ```
 
-## Screenshots
-
-
-### user login
-
-<p align="center">
-  <img src="screenshots/user_login.png" width="700">
-</p>
-
-### upload document
-
-<p align="center">
-  <img src="screenshots/upload_document.png" width="700">
-</p>
-
-### index document
-
-<p align="center">
-  <img src="screenshots/index_document.png" width="700">
-</p>
-
-### extract opportunity
-
-<p align="center">
-  <img src="screenshots/extract_opportunity.png" width="700">
-</p>
-
-### query vectordb
 
 ## Data Model
 

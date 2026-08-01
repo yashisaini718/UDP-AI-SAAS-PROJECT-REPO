@@ -1,8 +1,10 @@
-from app.ai.prompts import PromptManager
-from app.ai.llm import get_llm
+from fastapi import HTTPException, status, Request
+from app.core.security import get_current_user
 from sqlalchemy.ext.asyncio import AsyncSession
-import json
+from sqlalchemy.orm import  selectinload
+from sqlalchemy import select
 from datetime import datetime
+from app.models.users import User
 from app.models.documents import Document
 from app.models.opportunities import Opportunity
 from app.models.tasks import Task
@@ -53,3 +55,24 @@ async def save_opportunity(db: AsyncSession, extracted_data: dict, document: Doc
         db.rollback()
 
         raise
+
+
+async def getall(db: AsyncSession):
+    results= await db.execute(select(Opportunity).options(
+            selectinload(Opportunity.tasks)
+        ))
+    return results.scalars().all()
+
+async def getbydoc(doc_id: str, db: AsyncSession):
+    result= await db.execute(
+        select(Opportunity).options(
+            selectinload(Opportunity.tasks)
+        ).where(Opportunity.document_id == doc_id))
+    return result.scalars().all()
+
+
+async def getbyid(opp_id: str,db: AsyncSession):
+    result= await db.execute(select(Opportunity).options(
+            selectinload(Opportunity.tasks)
+        ).where(Opportunity.id== opp_id))
+    return result.scalars().all()
